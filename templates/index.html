@@ -1,0 +1,310 @@
+{% extends 'base.html' %}
+{% include 'header.html' %}
+{% block title %} HEllo {% endblock %}
+
+{% block body %}
+
+
+<div class="container">
+    <div class="row">
+        <div class="col md-12">
+            <div class="jumbotron p-3">
+                <h2>Manage <b>Movies</b> 
+                    <button type="button" class="btn btn-success float-right" data-toggle="modal" data-target="#mymodal">Add Movie</button>
+                    <button type="button" id="delete-actors-btn" class="btn btn-danger float-right mr-3">Delete Unassociated Actors</button>
+                </h2>
+                
+                {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                {% for message in messages %}
+                
+                <div class="alert alert-success alert-dismissable" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-label="close">
+                        <span aria-hidden="true">x</span>
+                    </button>
+                    {{message}}
+                </div>
+                {% endfor %}
+
+                {% endif %}
+
+                {% endwith %}
+
+                <form action="{{ url_for('filter_movies') }}" method="GET" class="mb-3">
+                    <div class="form-row">
+                        <div class="col">
+                            <select name="genre_filter" class="form-control">
+                                <option value="">Select Genre</option>
+                                {% for g in genredb %}
+                                <option value="{{ genredb[g] }}">{{ genredb[g] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control" name="actor_filter" placeholder="Filter by Actor">
+                        </div>
+                        <div class="col">
+                            <input type="text" class="form-control" name="technician_filter" placeholder="Filter by Technician">
+                        </div>
+                        <div class="col">
+                            <button type="submit" class="btn btn-primary">Filter</button>
+                        </div>
+                    </div>
+                </form>
+                <table class="table table-hover table-dark text-center">
+                    <tr>
+                        <th>
+                            ID
+                        </th>
+                        <th>
+                            Name
+                        </th>
+                        <th>
+                            Genres
+                        </th>
+                        <th>
+                            Actors
+                        </th>
+                        <th>
+                            Rating
+                        </th>
+                    </tr>
+                    
+                    {% for movie in movies %}
+                    <tr>
+                        <td>{{movie.id}}</td>
+                        <td>{{movie.name}}</td>
+                        <td>{{genres[movie.id]}}</td>
+                        <td>{{', '.join(actors_list[movie.id][:3]) }}</td>
+                        <td>{{movie.user_rating}}</td>
+                        <td>
+                            <a href="/update/{{movie.id}}" class="btn btn-warning btn-xs" data-toggle="modal" data-target="#modaledit{{movie.id}}">Edit</a>
+                            <a href="/delete/{{movie.id}}" class="btn btn-danger btn-xs" onclick="return confirm('Are you sure to delete?')">Delete</a>
+                        
+                        </td>
+                    </tr>
+                    
+
+                <!-- Modal Edit Employee-->
+                <div id="modaledit{{movie.id}}" class="modal fade" tabindex="-1" role="dialog">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h4 class="modal-title">Update Movie</h4>
+                        </div>
+                        <div class="modal-body">
+                            <form action="{{url_for('update')}}" method="POST">
+                                <div class="form-group">
+                                    <label>Movie Name:</label>
+                                    <input type="hidden" name="id" value="{{movie.id}}">
+                                    <input type="text" class="form-control"  name="movie_name" placeholder="Enter the movie title" value="{{movie.name}}"required="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Year of Release:</label>
+                                    <input type="number" class="form-control" name="year_of_release" placeholder="Enter the release year" value="{{movie.year_of_release}}"
+                                    min="1888" max="2024" required="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Rating:</label>
+                                    <input type="number" class="form-control" name="user_rating" placeholder="Enter the rating (e.g., 8.5)" value="{{movie.user_rating}}"
+                                    min="0" max="10" step="0.1" required="1">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label>Movie Genres:</label>
+                                    <select name="genres" class="form-control" multiple>
+                                        {% for g in genredb %}
+                                        <option value="{{genredb[g]}}" {% if genredb[g]==genres[movie.id] %}selected{% endif %}>{{genredb[g]}}</option>
+                                        
+                                        {% endfor %}
+                                        <!-- <option value="Action">Action</option>
+                                        <option value="Comedy">Comedy</option>
+                                        <option value="Drama">Drama</option>
+                                        <option value="Sci-fi">Sci-fi</option> -->
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Actors:</label>
+
+                                    <!-- <button type="button" class="btn btn-primary float-right" onclick="addActorField('actor-fields-update-{{ movie.id }}')">Add Actor</button> -->
+                                    <div id="actor-fields-update-{{ movie.id }}" class="mt-3" >
+                                        <input type="text" class="form-control mb-3" name="actors[]" placeholder="Enter actor name" value="{{actors_list[movie.id][0]}}" required>
+                                        {% for actor in actors_list[movie.id][1:] %}
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" name="actors[]" value="{{actor}}" placeholder="Enter actor name" aria-label="Enter actor name" aria-describedby="button-addon2">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-danger" type="button" id="button-addon2" onclick="removeActorField(this)">Delete</button>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                        <div class="input-group mb-3">
+                                            <input type="text" class="form-control" name="actors[]" value="" placeholder="Enter actor name" aria-label="Enter actor name" aria-describedby="button-addon2">
+                                            <div class="input-group-append">
+                                                <button class="btn btn-outline-danger" type="button" id="button-addon2" onclick="removeActorField(this)">Delete</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label>Technicians:</label>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="inputGroup-sizing-default">Director</span>
+                                        </div>
+                                        <input type="text" class="form-control" name="director" value="{{technicians[movie.id]['Director']}}" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="inputGroup-sizing-default">Producer</span>
+                                        </div>
+                                        <input type="text" class="form-control" name="producer" value="{{technicians[movie.id]['Producer']}}" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="inputGroup-sizing-default">Cinematographer</span>
+                                        </div>
+                                        <input type="text" class="form-control" name="cinematographer" value="{{technicians[movie.id]['Cinematographer']}}" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                    </div>
+                                    <div class="input-group mb-3">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text" id="inputGroup-sizing-default">Editor</span>
+                                        </div>
+                                        <input type="text" class="form-control" name="editor" value="{{technicians[movie.id]['Editor']}}" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <button class="btn btn-success btn-lg btn-block" type="submit">Update</button>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+                </div>
+                {% endfor %}
+                </table>
+            </div>
+
+
+
+            <!-- Modal Add Employee-->
+            <div id="mymodal" class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Add Movie</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form action="{{url_for('insert')}}" method="POST">
+                            <div class="form-group">
+                                <label>Movie Name:</label>
+                                <input type="text" class="form-control"  name="movie_name" placeholder="Enter the movie title" required="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Year of Release:</label>
+                                <input type="number" class="form-control" name="year_of_release" placeholder="Enter the release year"
+                                min="1888" max="2024" required="1">
+                            </div>
+                            <div class="form-group">
+                                <label>Rating:</label>
+                                <input type="number" class="form-control" name="user_rating" placeholder="Enter the rating (e.g., 8.5)" 
+                                min="0" max="10" step="0.1" required="1">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Movie Genre:</label>
+                                <select name="genres" class="form-control" multiple required="1">
+
+                                    {% for g in genredb %}
+                                    <option value="{{genredb[g]}}">{{genredb[g]}}</option>
+                                    {% endfor %}
+
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Actors:</label>
+                                <button type="button" class="btn btn-primary float-right" onclick="addActorField('actor-fields-add')">Add Actor</button>
+                                <div id="actor-fields-add" class="mt-3" >
+                                    <input type="text" class="form-control mb-3" name="actors[]" placeholder="Enter actor name" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Technicians:</label>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default">Director</span>
+                                    </div>
+                                    <input type="text" class="form-control" name="director" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default">Producer</span>
+                                    </div>
+                                    <input type="text" class="form-control" name="producer" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default">Cinematographer</span>
+                                    </div>
+                                    <input type="text" class="form-control" name="cinematographer" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                </div>
+                                <div class="input-group mb-3">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text" id="inputGroup-sizing-default">Editor</span>
+                                    </div>
+                                    <input type="text" class="form-control" name="editor" aria-label="Sizing example input" aria-describedby="inputGroup-sizing-default">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <button class="btn btn-dark btn-lg btn-block" type="submit">Add Movie</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function addActorField(targetID) {
+    const actorField = `<div class="input-group mb-3">
+                        <input type="text" class="form-control" name="actors[]" placeholder="Enter actor name" aria-label="Enter actor name" aria-describedby="button-addon2">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-danger" type="button" id="button-addon2" onclick="removeActorField(this)">Delete</button>
+                        </div>
+                        </div>`
+    document.getElementById(targetID).insertAdjacentHTML('beforeend', actorField);
+}
+function removeActorField(button) {
+    button.closest('.input-group').remove();
+}
+
+document.getElementById('delete-actors-btn').addEventListener('click', function() {
+    fetch('/delete_unassociated_actors', {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            // If successful, reload the page to show the flashed message
+            location.reload();
+        } else if (data.error) {
+            // Show error if any
+            alert('Error: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('An error occurred: ' + error.message);
+    });
+});
+
+
+</script>
+{% endblock %}
